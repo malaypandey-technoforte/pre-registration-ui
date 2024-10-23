@@ -253,26 +253,8 @@ export class LoginComponent implements OnInit {
   }
 
   isCaptchaEnabled() {
-    if (
-      this.configService.getConfigByKey(
-        "mosip.preregistration.captcha.enable"
-      ) === "false" ||
-      this.configService.getConfigByKey(
-        "mosip.preregistration.captcha.enable"
-      ) === undefined
-    ) {
-      this.enableCaptcha = false;
-    } else if (
-      this.configService.getConfigByKey(
-        "mosip.preregistration.captcha.enable"
-      ) === "true"
-    ) {
-      this.enableCaptcha = true;
-      this.loadRecaptchaSiteKey();
-    }
-    if (!this.enableCaptcha) {
-      this.enableSendOtp = true;
-    }
+    this.enableCaptcha = true;
+    this.enableSendOtp = true;
   }
 
   loadRecaptchaSiteKey() {

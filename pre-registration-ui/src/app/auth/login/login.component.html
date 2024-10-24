@@ -34,21 +34,28 @@
             </mat-select>
           </mat-form-field>
         </div>
-
+        <form method="post" id="contact-form">
         <div *ngIf="showContactDetails">
           <div [dir]="dir">
             <mat-form-field appearance="standard">
-              <input class="input_pri" autofocus="autofocus" matInput [(ngModel)]="inputContactDetails"
+              <input name="email" type="text" class="input_pri" autofocus="autofocus" matInput [(ngModel)]="inputContactDetails"
                 placeholder="{{ 'login.label_email_num' | translate }}"
                 title="{{ 'login.label_email_num' | translate }}" id="inputFieldContact" (input)="verifyInput()"
                 required />
             </mat-form-field>
           </div>
         </div>
-        <div *ngIf="enableCaptcha && showCaptcha">
+        <!-- <div *ngIf="enableCaptcha && showCaptcha">
           <app-captcha [captchaSiteKey]="siteKey" [resetCaptcha]="resetCaptcha"
             (captchaEvent)="getCaptchaToken($event)"></app-captcha>
+        </div> -->
+        
+        <div *ngIf="enableCaptcha && showCaptcha">
+          <div id="mosparo-box"></div>
         </div>
+        
+        <br/>
+      
         <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
         <p class="loading" *ngIf="loadingMessage != ''">{{ loadingMessage }}</p>
         <div *ngIf="captchaError && !showOTP" class="error" style="margin-left: 55px">
@@ -91,6 +98,7 @@
           <span>{{ "login.otp_valid_label" | translate }}&nbsp;</span><span id="minutesSpan">{{ minutes }}</span>:<span
             id="secondsSpan">{{ seconds }}</span>
         </div>
+      </form>
       </div>
     </div>
   </div>

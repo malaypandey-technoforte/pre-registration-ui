@@ -8,7 +8,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <link href="http://localhost:8080/resources/d329b915-7731-40fe-9a40-ef012498cd6d.css" rel="stylesheet">
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <script src="http://localhost:8080/build/mosparo-frontend.js" defer></script>
+      <script>
+          var m;
+          window.onload = function(){
+              m = new mosparo(
+                     'mosparo-box', 
+                     'http://localhost:8080', 
+                     'd329b915-7731-40fe-9a40-ef012498cd6d',
+                     'sQmrnYRWfPztEjuV0RnLxuCjGcPcMgMJLJQ9vNG8J60', 
+                     {loadCssResource: true,
+                      customMessages: {
+                      en: {
+                        label: 'I accept'
+                      }
+                      }
+                     }
+              );
+          };
+      </script>
   </head>
   <body>
     <app-root></app-root>

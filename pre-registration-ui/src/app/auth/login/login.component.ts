@@ -1,4 +1,4 @@
-import { Component, OnInit } from "@angular/core";
+import { Component, CUSTOM_ELEMENTS_SCHEMA, NgModule, OnInit } from "@angular/core";
 import { Router } from "@angular/router";
 import { TranslateService } from "@ngx-translate/core";
 import { DialougComponent } from "src/app/shared/dialoug/dialoug.component";
@@ -11,14 +11,21 @@ import * as appConstants from "../../app.constants";
 import Utils from "src/app/app.util";
 import moment from "moment";
 import stubConfig from "../../../assets/stub-config.json";
+import { CaptchaComponent } from "../captcha/captcha.component";
+import { CommonModule } from "@angular/common";
+import { HttpClient, HttpParams, HttpHeaders } from "@angular/common/http";
+import { AppConfigService } from "../../app-config.service";
 
-
+interface ICaptchaSubmit{
+  success:boolean
+}
 @Component({
   selector: "app-login",
   templateUrl: "./login.component.html",
   styleUrls: ["./login.component.css"],
 })
 export class LoginComponent implements OnInit {
+  captchaErrorMessage: string | null = null; 
   appVersion;
   disableBtn = false;
   timer: any;
@@ -57,7 +64,13 @@ export class LoginComponent implements OnInit {
   languageCodeValue: any = [];
   captchaToken = null;
   resetCaptcha: boolean;
+  BASE_URL = this.appConfigService.getConfig()["BASE_URL"];
+  PRE_REG_URL = this.appConfigService.getConfig()["PRE_REG_URL"];
+  challengeUrl=this.BASE_URL + this.PRE_REG_URL + appConstants.APPEND_URL.captcha_controller + 
+                appConstants.APPEND_URL.generate;
   constructor(
+    private httpClient: HttpClient,
+    private appConfigService: AppConfigService,
     private authService: AuthService,
     private router: Router,
     private translate: TranslateService,
@@ -261,7 +274,9 @@ export class LoginComponent implements OnInit {
         "mosip.preregistration.captcha.enable"
       ) === undefined
     ) {
-      this.enableCaptcha = false;
+      // this.enableCaptcha = false;
+      this.enableCaptcha = true;
+      this.loadRecaptchaSiteKey();
     } else if (
       this.configService.getConfigByKey(
         "mosip.preregistration.captcha.enable"
@@ -551,7 +566,40 @@ export class LoginComponent implements OnInit {
         this.errorMessage = this.validationMessages["invalidMobile"];
       }
     }
+  }handleAltchaState(event: CustomEvent) {
+    const { detail } = event;
+    if (detail) {
+      const { state, payload } = detail;  // Altcha emits 'state' and 'payload'
+      if (state === 'verified') {
+        this.captchaToken = payload;  // Capture the token
+        this.onSubmit();
+      } else if (state === 'unverified' || state === 'error') {
+        console.log('Captcha failed or unverified');
+        this.enableSendOtp = false;   // Disable OTP sending on failure or expiry
+      }
+    }
   }
+  onSubmit(): void {
+    const formData = new HttpParams()
+    .set('altcha', this.captchaToken); 
+    this.dataService
+        .altchaChallengeVerification(formData.toString())
+        .subscribe(
+      (response: ICaptchaSubmit)  => { 
+        console.log('Form submitted successfully', response);
+           if(response.success){
+            this.enableSendOtp =true
+           }
+           else{
+            this.enableSendOtp = false;
+           }
+      },
+      error => {
+        console.log('Form submission failed', error);
+      }
+    );
+  }
+  
 
   getCaptchaToken(event: Event) {
     if (event !== undefined && event != null) {
@@ -607,4 +655,5 @@ export class LoginComponent implements OnInit {
       data: body,
     });
   }
+  
 }

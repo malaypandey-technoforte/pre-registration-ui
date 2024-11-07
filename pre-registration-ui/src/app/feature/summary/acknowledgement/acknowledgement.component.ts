@@ -827,17 +827,18 @@ export class AcknowledgementComponent implements OnInit, OnDestroy {
           });
         });
       }
-    } else {
-      const body = {
-        title: "No Required Payment",
-        case: "NO-PAYMENT",
-        message: "Your selected service doesn't require any payment."
-      };
-      this.dialog.open(DialougComponent, {
-        width: "350px",
-        data: body
-      });
-    }
+    } 
+    // else {
+    //   const body = {
+    //     title: "No Required Payment",
+    //     case: "NO-PAYMENT",
+    //     message: "Your selected service doesn't require any payment."
+    //   };
+    //   this.dialog.open(DialougComponent, {
+    //     width: "350px",
+    //     data: body
+    //   });
+    // }
   }
 
   ngOnDestroy() {

@@ -19,6 +19,7 @@ import { PRNRequestModel } from "src/app/shared/models/request-model/prnrequestM
 import { PRNResponseModel } from "src/app/shared/models/request-model/prnresponseModel";
 
 
+
 @Component({
   selector: "app-acknowledgement",
   templateUrl: "./acknowledgement.component.html",
@@ -63,6 +64,7 @@ export class AcknowledgementComponent implements OnInit, OnDestroy {
   textDir = localStorage.getItem("dir");
   name = "";
   createdTime;
+  requestBody: PRNRequestModel;
   applicantContactDetails = [];
   constructor(
     private bookingService: BookingService,
@@ -71,7 +73,7 @@ export class AcknowledgementComponent implements OnInit, OnDestroy {
     private dataStorageService: DataStorageService,
     private configService: ConfigService,
     private activatedRoute: ActivatedRoute,
-    private router: Router
+     private router: Router
   ) {
     this.translate.use(localStorage.getItem("langCode"));
     this.langCode = localStorage.getItem("langCode");
@@ -139,7 +141,7 @@ export class AcknowledgementComponent implements OnInit, OnDestroy {
     });
   }
   async getUserInfo(preRegIds: string[]) {
-    debugger
+  
 
     return new Promise((resolve) => {
       preRegIds.forEach(async (prid: any, index) => {
@@ -603,118 +605,187 @@ export class AcknowledgementComponent implements OnInit, OnDestroy {
     });
   }
 
-/**
-   * @description This method checks if the selected desiredService is a payable service 
-   * and checks if age is morethan 16 then calls the generate prn endpoint
-   *it updates the PRN property that is finally rendered on the acknowledgement slip
-   * @private
-   * @memberof AcknowledgementComponent
-   */
   generatePaymentRefNum(demographicData: any) {
     let surname;
-    if(this.userService==appConstants.USER_SERVICE.UPDATE || this.userService==appConstants.USER_SERVICE.FIRSTID || this.userService==appConstants.USER_SERVICE.REPLACEMENT){
+    if(this.userService==appConstants.USER_SERVICE.UPDATE){
       surname = demographicData.surnameCop[0].value;
     }
     else{
-      surname = demographicData.surname[0].value;
+      surname = demographicData.surname;
     }
     const nin = demographicData.NIN;
-    const desiredService = demographicData.userService; 
-    const payablesServices = ["LOST", "UPDATE"];
-    const age:number =this.dataStorageService.calculateAge(demographicData.dateOfBirthCop);
-    
-    const hasAnyCoreCardData = surname || 
-                            demographicData.givenName[0].value || 
-                            demographicData.otherNames[0].value || 
-                            demographicData.gender[0].value || 
-                            demographicData.dateOfBirth || 
-                            demographicData.applicantCitizenshipType[0].value;
-    const requestBody: PRNRequestModel = {
-      service: desiredService,
+   const desiredService = demographicData.userService; 
+   const age:number =this.dataStorageService.calculateAge(demographicData.dateOfBirthCop);
+   // console.log(age);
+    if ( age > 16) { 
+      if (desiredService ==="UPDATE" && (demographicData.personalInformationCat || demographicData.placeOfResidenceCat)
+         && !demographicData.isErrorOccurredbyNIRA && demographicData.changeReasonCop[0].value != "SPLC"){
+          this.requestBody = {
+          service: appConstants.TAX_HEADS.COP_GEN,
+          NIN: nin,
+          fullName: surname
+          };
+          if (this.requestBody.fullName &&  this.requestBody.NIN &&  this.requestBody.service) {
+              //console.log(this.requestBody);
+            this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
+               if (response.response != null) {
+                this.PRN = response.response.data.prn;
+                this.amount = response.response.data.amount;
+                } 
+               else if (response.errors && Array.isArray(response.errors)) {
+                 const body = {
+                  case: "PRN-ERRORS",
+                  title: "PRN Error",
+                  message: response.errors[0].message,
+                  };
+                  this.dialog.open(DialougComponent, {
+                  width: "500px",
+                  data: body
+                  });
+                  console.error('Error:', response.errors[0].message);
+            }
+          },
+           (error) => {
+                        this.PRNerrorMessage = error.message || JSON.stringify(error);  
+                        const body = {
+                        case: "PRN-CONNECT-ERRORS",
+                        title: "PRN Connection Error",
+                        message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
+                       };
+                       this.dialog.open(DialougComponent, {
+                       width: "500px",
+                          data: body
+                        });
+                      });
+        } 
+   }
+   else if(desiredService ==="UPDATE" && (demographicData.personalInformationCat || demographicData.placeOfResidenceCat)
+    && !demographicData.isErrorOccurredbyNIRA && demographicData.changeReasonCop[0].value === "SPLC"){
+     this.requestBody = {
+     service: appConstants.TAX_HEADS.COP_SP_CORRECTION,
+     NIN: nin,
+     fullName: surname
+     };
+     if (this.requestBody.fullName &&  this.requestBody.NIN &&  this.requestBody.service) {
+         console.log(this.requestBody);
+       this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
+          if (response.response != null) {
+           this.PRN = response.response.data.prn;
+           this.amount = response.response.data.amount;
+           } 
+          else if (response.errors && Array.isArray(response.errors)) {
+            const body = {
+             case: "PRN-ERRORS",
+             title: "PRN Error",
+             message: response.errors[0].message,
+             };
+             this.dialog.open(DialougComponent, {
+             width: "500px",
+             data: body
+             });
+             console.error('Error:', response.errors[0].message);
+       }
+     },
+      (error) => {
+                   this.PRNerrorMessage = error.message || JSON.stringify(error);  
+                   const body = {
+                   case: "PRN-CONNECT-ERRORS",
+                   title: "PRN Connection Error",
+                   message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
+                  };
+                  this.dialog.open(DialougComponent, {
+                  width: "500px",
+                     data: body
+                   });
+                 });
+   } 
+}
+
+  else if(desiredService ===appConstants.USER_SERVICE.REPLACEMENT && demographicData.userServiceTypeReplacement[0].value==="LOST"){
+
+ 
+ this.requestBody = {
+  service: appConstants.TAX_HEADS.REPLACEMENT,
+  NIN: nin,
+  fullName: surname
+};
+this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
+      if (response.response != null) {
+        this.PRN = response.response.data.prn;
+        this.amount = response.response.data.amount;
+      } else if (response.errors && Array.isArray(response.errors)) {
+        const body = {
+          case: "PRN-ERRORS",
+          title: "PRN Error",
+          message: response.errors[0].message,
+        };
+        this.dialog.open(DialougComponent, {
+          width: "500px",
+          data: body
+        });
+        console.error('Error:', response.errors[0].message);
+      }
+    },
+    (error) => {
+      this.PRNerrorMessage = error.message || JSON.stringify(error);  
+      const body = {
+        case: "PRN-CONNECT-ERRORS",
+        title: "PRN Connection Error",
+        message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
+      };
+      console.log(body);
+      this.dialog.open(DialougComponent, {
+        width: "500px",
+        data: body
+      });
+    });
+  }
+  else if(desiredService ===appConstants.USER_SERVICE.REPLACEMENT && demographicData.userServiceTypeReplacement[0].value==="DMG"){
+      this.requestBody = {
+      service: appConstants.TAX_HEADS.DAMAGED_CARD ,
       NIN: nin,
       fullName: surname
     };
-
-    if (requestBody.fullName &&  requestBody.NIN &&  requestBody.service && payablesServices.includes(requestBody.service)) {
-        // Check if service is "UPDATE"
-      if (requestBody.service === "UPDATE") {
-        // Only call the API if core card data exists for UPDATE and age is above 16 years
-        if (hasAnyCoreCardData && age > 16) { 
-          this.dataStorageService.generatePRN(requestBody).subscribe((response: PRNResponseModel) => {
-            if (response.response != null) {
-              this.PRN = response.response.data.prn;
-              this.amount = response.response.data.amount;
-            } else if (response.errors && Array.isArray(response.errors)) {
-              const body = {
-                case: "PRN-ERRORS",
-                title: "PRN Error",
-                message: response.errors[0].message,
-              };
-              this.dialog.open(DialougComponent, {
-                width: "500px",
-                data: body
-              });
-              console.error('Error:', response.errors[0].message);
-            }
-          }, (error) => {
-            this.PRNerrorMessage = error.message || JSON.stringify(error);  
-            const body = {
-              case: "PRN-CONNECT-ERRORS",
-              title: "PRN Connection Error",
-              message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
-            };
-            this.dialog.open(DialougComponent, {
-              width: "500px",
-              data: body
-            });
-          });
-        } else {
-          // Show dialog if no core card data is present for UPDATE
-          const body = {
-            title: "COP NO Payment",
-            case: "NO-CORE-CARD-DATA",
-            message: "No payement since you have not changed any core card data.\n\n OR You are below 16 to be charged for the changes "
-          };
-          this.dialog.open(DialougComponent, {
-            width: "350px",
-            data: body
-          });
-        }
-      } else {
-        // Call the API for services that are not "UPDATE"
-        this.dataStorageService.generatePRN(requestBody).subscribe((response: PRNResponseModel) => {
-          if (response.response != null) {
-            this.PRN = response.response.data.prn;
-            this.amount = response.response.data.amount;
-          } else if (response.errors && Array.isArray(response.errors)) {
-            const body = {
-              case: "PRN-ERRORS",
-              title: "PRN Error",
-              message: response.errors[0].message,
-            };
-            this.dialog.open(DialougComponent, {
-              width: "500px",
-              data: body
-            });
-            console.error('Error:', response.errors[0].message);
-          }
-        }, (error) => {
-          this.PRNerrorMessage = error.message || JSON.stringify(error);  
-          const body = {
-            case: "PRN-CONNECT-ERRORS",
-            title: "PRN Connection Error",
-            message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
-          };
-          console.log(body);
-          this.dialog.open(DialougComponent, {
-            width: "500px",
-            data: body
-          });
+    console.log(this.requestBody.service);
+    
+    this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
+      if (response.response != null) {
+        this.PRN = response.response.data.prn;
+        this.amount = response.response.data.amount;
+      } 
+      else if (response.errors && Array.isArray(response.errors)) {
+        const body = {
+          case: "PRN-ERRORS",
+          title: "PRN Error",
+          message: response.errors[0].message,
+        };
+        this.dialog.open(DialougComponent, {
+          width: "500px",
+          data: body
         });
+        console.error('Error:', response.errors[0].message);
       }
+    }, 
+    (error) => {
+      this.PRNerrorMessage = error.message || JSON.stringify(error);  
+      const body = {
+        case: "PRN-CONNECT-ERRORS",
+        title: "PRN Connection Error",
+        message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
+      };
+      console.log(body);
+      this.dialog.open(DialougComponent, {
+        width: "500px",
+        data: body
+      });
+    });
 
-    } 
   }
+}
+   
+}
+
+
 
   ngOnDestroy() {
     this.subscriptions.forEach((subscription) => subscription.unsubscribe());

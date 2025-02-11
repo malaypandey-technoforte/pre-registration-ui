@@ -230,8 +230,8 @@ export const USER_SERVICE = {
 };
 
 export const TAX_HEADS = {
-  COP_SP_CORRECTION : "UPDATE_1",
-  COP_GEN : "UPDATE",
+  COP_SPELLING_CORRECTION : "CISE",
+  COP_NORMAL : "COI",
   DAMAGED_CARD: "DMG",
   REPLACEMENT: "LOST",
   };

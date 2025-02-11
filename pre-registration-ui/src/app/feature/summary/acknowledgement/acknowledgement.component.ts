@@ -518,7 +518,7 @@ export class AcknowledgementComponent implements OnInit, OnDestroy {
   }
 
   async sendNotification(contactInfoArr, additionalRecipient: boolean) {
-    debugger
+  
     this.preRegIds.forEach(async preRegId => {
       let notificationObject = {};
       console.log("contactInfoArr" + contactInfoArr)
@@ -605,185 +605,108 @@ export class AcknowledgementComponent implements OnInit, OnDestroy {
     });
   }
 
-  generatePaymentRefNum(demographicData: any) {
-    let surname;
-    if(this.userService==appConstants.USER_SERVICE.UPDATE){
-      surname = demographicData.surnameCop[0].value;
-    }
-    else{
-      surname = demographicData.surname;
-    }
-    const nin = demographicData.NIN;
-   const desiredService = demographicData.userService; 
-   const age:number =this.dataStorageService.calculateAge(demographicData.dateOfBirthCop);
-   // console.log(age);
-    if ( age > 16) { 
-      if (desiredService ==="UPDATE" && (demographicData.personalInformationCat || demographicData.placeOfResidenceCat)
-         && !demographicData.isErrorOccurredbyNIRA && demographicData.changeReasonCop[0].value != "SPLC"){
-          this.requestBody = {
-          service: appConstants.TAX_HEADS.COP_GEN,
-          NIN: nin,
-          fullName: surname
-          };
-          if (this.requestBody.fullName &&  this.requestBody.NIN &&  this.requestBody.service) {
-              //console.log(this.requestBody);
-            this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
-               if (response.response != null) {
-                this.PRN = response.response.data.prn;
-                this.amount = response.response.data.amount;
-                } 
-               else if (response.errors && Array.isArray(response.errors)) {
-                 const body = {
-                  case: "PRN-ERRORS",
-                  title: "PRN Error",
-                  message: response.errors[0].message,
-                  };
-                  this.dialog.open(DialougComponent, {
-                  width: "500px",
-                  data: body
-                  });
-                  console.error('Error:', response.errors[0].message);
-            }
-          },
-           (error) => {
-                        this.PRNerrorMessage = error.message || JSON.stringify(error);  
-                        const body = {
-                        case: "PRN-CONNECT-ERRORS",
-                        title: "PRN Connection Error",
-                        message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
-                       };
-                       this.dialog.open(DialougComponent, {
-                       width: "500px",
-                          data: body
-                        });
-                      });
-        } 
-   }
-   else if(desiredService ==="UPDATE" && (demographicData.personalInformationCat || demographicData.placeOfResidenceCat)
-    && !demographicData.isErrorOccurredbyNIRA && demographicData.changeReasonCop[0].value === "SPLC"){
-     this.requestBody = {
-     service: appConstants.TAX_HEADS.COP_SP_CORRECTION,
-     NIN: nin,
-     fullName: surname
-     };
-     if (this.requestBody.fullName &&  this.requestBody.NIN &&  this.requestBody.service) {
-         console.log(this.requestBody);
-       this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
-          if (response.response != null) {
-           this.PRN = response.response.data.prn;
-           this.amount = response.response.data.amount;
-           } 
-          else if (response.errors && Array.isArray(response.errors)) {
-            const body = {
-             case: "PRN-ERRORS",
-             title: "PRN Error",
-             message: response.errors[0].message,
-             };
-             this.dialog.open(DialougComponent, {
-             width: "500px",
-             data: body
-             });
-             console.error('Error:', response.errors[0].message);
-       }
-     },
-      (error) => {
-                   this.PRNerrorMessage = error.message || JSON.stringify(error);  
-                   const body = {
-                   case: "PRN-CONNECT-ERRORS",
-                   title: "PRN Connection Error",
-                   message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
-                  };
-                  this.dialog.open(DialougComponent, {
-                  width: "500px",
-                     data: body
-                   });
-                 });
-   } 
-}
-
-  else if(desiredService ===appConstants.USER_SERVICE.REPLACEMENT && demographicData.userServiceTypeReplacement[0].value==="LOST"){
-
- 
- this.requestBody = {
-  service: appConstants.TAX_HEADS.REPLACEMENT,
-  NIN: nin,
-  fullName: surname
-};
-this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
-      if (response.response != null) {
+getPRNResponse(){
+  this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
+    if (response.response != null) {
         this.PRN = response.response.data.prn;
         this.amount = response.response.data.amount;
-      } else if (response.errors && Array.isArray(response.errors)) {
-        const body = {
-          case: "PRN-ERRORS",
-          title: "PRN Error",
-          message: response.errors[0].message,
-        };
-        this.dialog.open(DialougComponent, {
-          width: "500px",
-          data: body
-        });
-        console.error('Error:', response.errors[0].message);
-      }
+            } 
+    else if (response.errors && Array.isArray(response.errors)) {
+            const body = {
+            case: "PRN-ERRORS",
+            title: "PRN Error",
+            message: response.errors[0].message,
+            };
+            this.dialog.open(DialougComponent, {
+            width: "500px",
+            data: body
+          });
+          console.error('Error:', response.errors[0].message);
+        }
     },
     (error) => {
-      this.PRNerrorMessage = error.message || JSON.stringify(error);  
-      const body = {
-        case: "PRN-CONNECT-ERRORS",
-        title: "PRN Connection Error",
-        message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
-      };
-      console.log(body);
-      this.dialog.open(DialougComponent, {
-        width: "500px",
-        data: body
-      });
-    });
-  }
-  else if(desiredService ===appConstants.USER_SERVICE.REPLACEMENT && demographicData.userServiceTypeReplacement[0].value==="DMG"){
-      this.requestBody = {
-      service: appConstants.TAX_HEADS.DAMAGED_CARD ,
-      NIN: nin,
-      fullName: surname
-    };
-    console.log(this.requestBody.service);
-    
-    this.dataStorageService.generatePRN(this.requestBody).subscribe((response: PRNResponseModel) => {
-      if (response.response != null) {
-        this.PRN = response.response.data.prn;
-        this.amount = response.response.data.amount;
-      } 
-      else if (response.errors && Array.isArray(response.errors)) {
-        const body = {
-          case: "PRN-ERRORS",
-          title: "PRN Error",
-          message: response.errors[0].message,
-        };
-        this.dialog.open(DialougComponent, {
-          width: "500px",
-          data: body
-        });
-        console.error('Error:', response.errors[0].message);
-      }
-    }, 
-    (error) => {
-      this.PRNerrorMessage = error.message || JSON.stringify(error);  
-      const body = {
-        case: "PRN-CONNECT-ERRORS",
-        title: "PRN Connection Error",
-        message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
-      };
-      console.log(body);
-      this.dialog.open(DialougComponent, {
-        width: "500px",
-        data: body
-      });
-    });
+                  this.PRNerrorMessage = error.message || JSON.stringify(error);  
+                  const body = {
+                  case: "PRN-CONNECT-ERRORS",
+                  title: "PRN Connection Error",
+                  message: "Unable to connect to the server: " + this.PRNerrorMessage + "\n\nMake sure to pay in any Bank before proceeding to NIRA office"
+                  };
+                  this.dialog.open(DialougComponent, {
+                  width: "500px",
+                      data: body
+                    });
+                });
 
+}
+
+generatePaymentRefNum(demographicData: any) {
+  let surname;
+  if(this.userService==appConstants.USER_SERVICE.UPDATE){
+    surname = demographicData.surnameCop[0].value;
   }
+  else{
+    surname = demographicData.surname;
+  }
+  const nin = demographicData.NIN;
+  const desiredService = demographicData.userService; 
+  const age:number =this.dataStorageService.calculateAge(demographicData.dateOfBirthCop);
+  //console.log("my data", demographicData);
+
+    if (desiredService ===appConstants.USER_SERVICE.UPDATE){
+      if (demographicData.isErrorNameChange==="N"  || !("isErrorNameChange" in demographicData)){
+        
+        if ( age > 16) { 
+          if (demographicData.changeReasonNameChange[0].value != "SPLC" && (demographicData.removingName==="Y"|| demographicData.addingName==="Y"||demographicData.completeChangeofName==="Y" ||demographicData.changeOfDateOfBirth==="Y" ||demographicData.changeInPlaceOfResidence==="Y") )
+             {
+                 this.requestBody = {
+                 service: appConstants.TAX_HEADS.COP_NORMAL,
+                 NIN: nin,
+                 fullName: surname
+                 };
+                  console.log(this.requestBody);
+                  this.getPRNResponse();
+                  console.log("this is from the general update");
+             }
+         else if((demographicData.removingName==="Y"|| demographicData.addingName==="Y"||demographicData.completeChangeofName==="Y" ||demographicData.changeOfDateOfBirth==="Y" ||demographicData.changeInPlaceOfResidence==="Y") && demographicData.changeReasonNameChange[0].value === "SPLC" )
+              {
+             this.requestBody = {
+             service: appConstants.TAX_HEADS.COP_SPELLING_CORRECTION,
+             NIN: nin,
+             fullName: surname
+             };
+             if (this.requestBody.fullName &&  this.requestBody.NIN &&  this.requestBody.service) {
+                  console.log(this.requestBody);
+                 this.getPRNResponse();
+                 console.log("this is from spelling error");
+               
+               } 
+             }
+
+       }
+       }
+ }
+else if(desiredService ===appConstants.USER_SERVICE.REPLACEMENT){
+        if(demographicData.userServiceTypeReplacement[0].value==="LOST"){
+
+          this.requestBody = {
+            service: appConstants.TAX_HEADS.REPLACEMENT  ,
+            NIN: nin,
+            fullName: surname
+          };
+            this.getPRNResponse();
+             }
+        else if (demographicData.userServiceTypeReplacement[0].value==="DMG"){
+          this.requestBody = {
+            service: appConstants.TAX_HEADS.DAMAGED_CARD ,
+            NIN: nin,
+            fullName: surname
+          };
+          console.log(this.requestBody.service);
+          this.getPRNResponse();
+        }
+} 
 }
-   
-}
+
 
 
 
